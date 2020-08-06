@@ -18,10 +18,10 @@ class MultiScaleDiscriminator(nn.Module):
     def forward(self, x, mel):
         results = []
         for key, disc in self.model.items():
-            results.append(disc(x, mel))
+            results.append(disc(x, mel)) # [[uncond, cond], [uncond, cond], [uncond, cond]]
             x = self.downsample(x)
             mel = self.downsample(mel)
-        return results
+        return results # [D01, D02, D03]
 
 
 if __name__ == '__main__':

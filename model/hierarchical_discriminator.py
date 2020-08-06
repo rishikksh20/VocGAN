@@ -15,14 +15,11 @@ class Heirarchical_JCU_Discriminator(nn.Module):
         self.multiscale_discriminator = MultiScaleDiscriminator()
         self.apply(weights_init)
 
-    def forward(self, x, mel):
+    def forward(self, sub_X, x, mel):
         results = []
-        multi_scale_out = self.multiscale_discriminator(x, mel)
-        sample_rate = hp.audio.sample_rate
+        multi_scale_out = self.multiscale_discriminator(x, mel) # D0
         i = 1
         for key, disc in self.model.items():
-            new_sample_rate = (sample_rate // (2**i))
-            downsample_ = torchaudio.transforms.Resample(sample_rate, new_sample_rate)(x)
-            results.append(disc(downsample_, mel)) # [[uncond, cond], [uncond, cond], [uncond, cond], [uncond, cond]]
+            results.append(disc(sub_X[i], mel)) # [[uncond, cond], [uncond, cond], [uncond, cond], [uncond, cond]]
             i = i + 1
-        return results, multi_scale_out
+        return results, multi_scale_out #  [D1, D2, D3, D4], D0 -> [D01, D02, D03] ,

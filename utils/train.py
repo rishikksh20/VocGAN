@@ -85,49 +85,50 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
 
                 # generator
                 optim_g.zero_grad()
-                fake_audio = model_g(melG)[:, :, :hp.audio.segment_length]  # torch.Size([16, 1, 12800])
+                sub_4, sub_3, sub_2, sub_1, fake_audio = model_g(melG)[:, :, :hp.audio.segment_length]  # torch.Size([16, 1, 12800])
 
-                
-                
-                loss_g = 0.0
 
-                # reconstruct the signal from multi-band signal
-
-                if hp.model.out_channels > 1:
-                    y_mb_ = fake_audio
-                    fake_audio = pqmf.synthesis(y_mb_)
 
 
                 sc_loss, mag_loss = stft_loss(fake_audio[:, :, :audioG.size(2)].squeeze(1), audioG.squeeze(1))
                 loss_g = sc_loss + mag_loss
 
-                if hp.model.use_subband_stft_loss:
-                    
-                    loss_g *= 0.5  # for balancing with subband stft loss
-                    y_mb = pqmf.analysis(audioG)
-                    y_mb = y_mb.view(-1, y_mb.size(2))  # (B, C, T) -> (B x C, T)
-                    y_mb_ = y_mb_.view(-1, y_mb_.size(2))  # (B, C, T) -> (B x C, T)
-                    sub_sc_loss, sub_mag_loss = sub_stft_loss(y_mb_[:, :y_mb.size(-1)], y_mb)  # y_mb --> [B*C, T]
-                    loss_g += 0.5 * (sub_sc_loss + sub_mag_loss)
                 adv_loss = 0.0
+                sample_rate = hp.audio.sample_rate
                 if step > hp.train.discriminator_train_start_steps:
-                    disc_real = model_d(audioG)
-                    disc_fake = model_d(fake_audio)
+                    sub_orig_1 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 2))(audioG)
+                    sub_orig_2 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 4))(audioG)
+                    sub_orig_3 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 8))(audioG)
+                    sub_orig_4 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 16))(audioG)
+                    disc_real, disc_real_multiscale = model_d([sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4], audioG, melG)
+                    disc_fake, disc_fake_multiscale = model_d([sub_4, sub_3, sub_2, sub_1], fake_audio, melG)
                     # for multi-scale discriminator
 
-                    for feats_fake, score_fake in disc_fake:
+                    for score_fake in disc_fake:
                         # adv_loss += torch.mean(torch.sum(torch.pow(score_fake - 1.0, 2), dim=[1, 2]))
-                        adv_loss += criterion(score_fake, torch.ones_like(score_fake))
-                    adv_loss = adv_loss / len(disc_fake) # len(disc_fake) = 3
+                        adv_loss += criterion(score_fake[0], torch.ones_like(score_fake))
+                        adv_loss += criterion(score_fake[1], torch.ones_like(score_fake))
 
+                    for score_fake in disc_fake_multiscale:
+                        # adv_loss += torch.mean(torch.sum(torch.pow(score_fake - 1.0, 2), dim=[1, 2]))
+                        adv_loss += criterion(score_fake[0], torch.ones_like(score_fake))
+                        adv_loss += criterion(score_fake[1], torch.ones_like(score_fake))
 
+                    adv_loss = 0.5 * adv_loss
 
+                    loss_feat = 0
+                    feat_weights = 4.0 / (2 + 1) # Number of downsample layer in discriminator = 2
+                    D_weights = 1.0 / 7.0 # number of discriminator = 7
+                    wt = D_weights * feat_weights
                     if hp.model.feat_loss :
-                        for (feats_fake, score_fake), (feats_real, _) in zip(disc_fake, disc_real):
-                            for feat_f, feat_r in zip(feats_fake, feats_real):
-                                adv_loss += hp.model.feat_match * torch.mean(torch.abs(feat_f - feat_r))
+                        for feats_fake, feats_real in zip(disc_fake, disc_real):
+                            loss_feat += wt * torch.mean(torch.abs(feats_fake[0] - feats_real[0]))
+                            loss_feat += wt * torch.mean(torch.abs(feats_fake[1] - feats_real[1]))
+                        for feats_fake, feats_real in zip(disc_fake_multiscale, disc_real_multiscale):
+                            loss_feat += wt * torch.mean(torch.abs(feats_fake[0] - feats_real[0]))
+                            loss_feat += wt * torch.mean(torch.abs(feats_fake[1] - feats_real[1]))
 
-                    loss_g += hp.model.lambda_adv * adv_loss
+                    loss_g += hp.model.lambda_adv * adv_loss + hp.model.feat_match * loss_feat
             
 
                 loss_g.backward()
@@ -136,23 +137,35 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                 # discriminator
                 loss_d_avg = 0.0
                 if step > hp.train.discriminator_train_start_steps:
-                    fake_audio = model_g(melD)[:, :, :hp.audio.segment_length]
-                    if hp.model.out_channels > 1:
-                        fake_audio = pqmf.synthesis(fake_audio)
-                    fake_audio = fake_audio.detach()
+                    sub_4, sub_3, sub_2, sub_1, fake_audio = model_g(melD)[:, :, :hp.audio.segment_length]
+
+                    sub_4, sub_3, sub_2, sub_1, fake_audio = sub_4.detach(), sub_3.detach(), sub_2.detach(), sub_1.detach(), fake_audio.detach()
                     loss_d_sum = 0.0
                     for _ in range(hp.train.rep_discriminator):
                         optim_d.zero_grad()
-                        disc_fake = model_d(fake_audio)
-                        disc_real = model_d(audioD)
+                        disc_fake, disc_fake_multiscale = model_d([sub_4, sub_3, sub_2, sub_1], fake_audio, melD)
+                        sub_orig_1 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 2))(audioD)
+                        sub_orig_2 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 4))(audioD)
+                        sub_orig_3 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 8))(audioD)
+                        sub_orig_4 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 16))(audioD)
+                        disc_real, disc_real_multiscale = model_d([sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4], audioD, melD)
                         loss_d = 0.0
                         loss_d_real = 0.0
                         loss_d_fake = 0.0
-                        for (_, score_fake), (_, score_real) in zip(disc_fake, disc_real):
-                            loss_d_real += criterion(score_real, torch.ones_like(score_real))
-                            loss_d_fake += criterion(score_fake, torch.zeros_like(score_fake))
-                        loss_d_real = loss_d_real / len(disc_real) # len(disc_real) = 3
-                        loss_d_fake = loss_d_fake / len(disc_fake) # len(disc_fake) = 3
+                        for score_fake, score_real in zip(disc_fake, disc_real):
+                            loss_d_real += criterion(score_real[0], torch.ones_like(score_real)) # Unconditional
+                            loss_d_real += criterion(score_real[1], torch.ones_like(score_real)) # Conditional
+                            loss_d_fake += criterion(score_fake[0], torch.zeros_like(score_fake))
+                            loss_d_fake += criterion(score_fake[1], torch.zeros_like(score_fake))
+
+                        for score_fake, score_real in zip(disc_fake_multiscale, disc_real_multiscale):
+                            loss_d_real += criterion(score_real[0], torch.ones_like(score_real))
+                            loss_d_real += criterion(score_real[1], torch.ones_like(score_real))
+                            loss_d_fake += criterion(score_fake[0], torch.zeros_like(score_fake))
+                            loss_d_fake += criterion(score_fake[1], torch.zeros_like(score_fake))
+
+                        loss_d_real = 0.5 * loss_d_real #/ len(disc_real) # len(disc_real) = 3
+                        loss_d_fake = 0.5 * loss_d_fake #/ len(disc_fake) # len(disc_fake) = 3
                         loss_d = loss_d_real + loss_d_fake
                         loss_d.backward()
                         optim_d.step()
