@@ -67,9 +67,9 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
         pqmf = PQMF()
 
         for epoch in itertools.count(init_epoch+1):
-            if epoch % hp.log.validation_interval == 0:
-                with torch.no_grad():
-                    validate(hp, args, model_g, model_d, valloader, stft_loss, sub_stft_loss, criterion, pqmf, writer, step)
+            # if epoch % hp.log.validation_interval == 0:
+            #     with torch.no_grad():
+            #         validate(hp, args, model_g, model_d, valloader, stft_loss, sub_stft_loss, criterion, pqmf, writer, step)
 
             trainloader.dataset.shuffle_mapping()
             loader = tqdm.tqdm(trainloader, desc='Loading train data')
@@ -84,7 +84,8 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
 
                 # generator
                 optim_g.zero_grad()
-                sub_4, sub_3, sub_2, sub_1, fake_audio = model_g(melG)[:, :, :hp.audio.segment_length]  # torch.Size([16, 1, 12800])
+                sub_4, sub_3, sub_2, sub_1, fake_audio = model_g(melG)  # torch.Size([16, 1, 12800])
+                fake_audio = fake_audio[:, :, :hp.audio.segment_length]
 
 
 
@@ -93,7 +94,7 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                 loss_g = sc_loss + mag_loss
 
                 adv_loss = 0.0
-                sample_rate = hp.audio.sample_rate
+                sample_rate = hp.audio.sampling_rate
                 if step > hp.train.discriminator_train_start_steps:
                     sub_orig_1 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 2))(audioG)
                     sub_orig_2 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 4))(audioG)
