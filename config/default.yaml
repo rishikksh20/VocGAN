@@ -1,11 +1,11 @@
 data: # root path of train/validation data (either relative/absoulte path is ok)
-  train: '/workspace/LJSpeech-1.1/wavs'
-  validation: '/workspace/LJSpeech-1.1/valid'
-  mel_path: '/workspace/FastSpeech2/data/mels'
+  train: 'H:\Deepsync\backup\deepsync\LJSpeech-1.1\wavs'
+  validation: 'H:\Deepsync\backup\deepsync\LJSpeech-1.1\valid'
+  mel_path: 'H:\Deepsync\backup\fastspeech\data\mels'
 ---
 train:
   rep_discriminator: 1
-  discriminator_train_start_steps: 200000
+  discriminator_train_start_steps: 10
   num_workers: 8
   batch_size: 16
   optimizer: 'adam'
@@ -27,7 +27,7 @@ audio:
 ---
 model:
   feat_match: 10.0
-  lambda_adv: 2.5
+  lambda_adv: 1
   use_subband_stft_loss: False
   feat_loss: False
   out_channels: 1
