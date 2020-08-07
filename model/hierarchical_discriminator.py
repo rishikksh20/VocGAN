@@ -6,10 +6,10 @@ from model.multiscale import MultiScaleDiscriminator
 import torchaudio
 
 class Heirarchical_JCU_Discriminator(nn.Module):
-    def __init__(self, num_JCU_D = 4 ):
-        super().__init__()
+    def __init__(self):
+        super(Heirarchical_JCU_Discriminator, self).__init__()
         self.model = nn.ModuleDict()
-        for i in range(num_JCU_D):
+        for i in range(4):
             self.model[f"disc_{i}"] = JCU_Discriminator()
 
         self.multiscale_discriminator = MultiScaleDiscriminator()

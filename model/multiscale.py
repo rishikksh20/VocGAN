@@ -7,7 +7,7 @@ from model.discriminator import JCU_Discriminator
 
 class MultiScaleDiscriminator(nn.Module):
     def __init__(self, num_D = 3, downsampling_factor = 4):
-        super().__init__()
+        super(MultiScaleDiscriminator, self).__init__()
         self.model = nn.ModuleDict()
         for i in range(num_D):
             self.model[f"disc_{i}"] = JCU_Discriminator()

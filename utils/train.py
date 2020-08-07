@@ -6,7 +6,7 @@ import itertools
 import traceback
 from utils.pqmf import PQMF
 from model.generator import Generator
-from model.multiscale import MultiScaleDiscriminator
+from model.hierarchical_discriminator import Heirarchical_JCU_Discriminator
 from .utils import get_commit_hash
 from .validation import validate
 from utils.stft_loss import MultiResolutionSTFTLoss
@@ -16,11 +16,10 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
     model_g = Generator(hp.audio.n_mel_channels, hp.model.n_residual_layers,
                         ratios=hp.model.generator_ratio, mult = hp.model.mult,
                         out_band = hp.model.out_channels).cuda()
-    print("Generator : \n",model_g)
+    #print("Generator : \n",model_g)
 
-    model_d = MultiScaleDiscriminator(hp.model.num_D, hp.model.ndf, hp.model.n_layers,
-                                      hp.model.downsampling_factor, hp.model.disc_out).cuda()
-    print("Discriminator : \n", model_d)
+    model_d = Heirarchical_JCU_Discriminator().cuda()
+    #print("Discriminator : \n", model_d)
     optim_g = torch.optim.Adam(model_g.parameters(),
         lr=hp.train.adam.lr, betas=(hp.train.adam.beta1, hp.train.adam.beta2))
     optim_d = torch.optim.Adam(model_d.parameters(),
