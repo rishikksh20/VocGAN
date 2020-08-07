@@ -1,8 +1,8 @@
 import tqdm
 import torch
+import torchaudio
 
-
-def validate(hp, args, generator, discriminator, valloader, stft_loss, sub_stft_loss, criterion, pqmf, writer, step):
+def validate(hp, args, generator, discriminator, valloader, stft_loss, criterion, writer, step):
     generator.eval()
     discriminator.eval()
     torch.backends.cudnn.benchmark = False
@@ -15,39 +15,55 @@ def validate(hp, args, generator, discriminator, valloader, stft_loss, sub_stft_
         audio = audio.cuda()    # B, 1, T torch.Size([1, 1, 212893])
 
         # generator
-        fake_audio = generator(mel) # B, 1, T' torch.Size([1, 1, 212992])
-        if hp.model.out_channels > 1:
-            y_mb_ = fake_audio
-            fake_audio = pqmf.synthesis(fake_audio)
-        disc_fake = discriminator(fake_audio[:, :, :audio.size(2)]) # B, 1, T torch.Size([1, 1, 212893])
-        disc_real = discriminator(audio)
+        sub_4, sub_3, sub_2, sub_1, fake_audio = generator(mel)  # torch.Size([16, 1, 12800])
+
+        sc_loss, mag_loss = stft_loss(fake_audio[:, :, :audio.size(2)].squeeze(1), audio.squeeze(1))
+        loss_g = sc_loss + mag_loss
+        sample_rate = hp.audio.sampling_rate
+        sub_orig_1 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 2))(audio)
+        sub_orig_2 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 4))(audio)
+        sub_orig_3 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 8))(audio)
+        sub_orig_4 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 16))(audio)
+        disc_real, disc_real_multiscale = discriminator([sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4], audio, mel)
+        disc_fake, disc_fake_multiscale = discriminator([sub_4, sub_3, sub_2, sub_1], fake_audio[:, :, :audio.size(2)], mel)
+
 
         adv_loss =0.0
         loss_d_real = 0.0
         loss_d_fake = 0.0
-        sc_loss, mag_loss = stft_loss(fake_audio[:, :, :audio.size(2)].squeeze(1), audio.squeeze(1))
-        loss_g = sc_loss + mag_loss
 
-        if hp.model.use_subband_stft_loss:
-            loss_g *= 0.5  # for balancing with subband stft loss
-            y_mb = pqmf.analysis(audio)
-            y_mb = y_mb.view(-1, y_mb.size(2))  # (B, C, T) -> (B x C, T)
-            y_mb_ = y_mb_.view(-1, y_mb_.size(2))  # (B, C, T) -> (B x C, T)
-            sub_sc_loss, sub_mag_loss = sub_stft_loss(y_mb_[:, :y_mb.size(-1)], y_mb)
-            loss_g += 0.5 * (sub_sc_loss + sub_mag_loss)
+        for score_fake, score_real in zip(disc_fake, disc_real):
+            adv_loss += criterion(score_fake[0], torch.ones_like(score_fake[0]))
+            adv_loss += criterion(score_fake[1], torch.ones_like(score_fake[1]))
+            loss_d_real += criterion(score_real[0], torch.ones_like(score_real[0]))  # Unconditional
+            loss_d_real += criterion(score_real[1], torch.ones_like(score_real[1]))  # Conditional
+            loss_d_fake += criterion(score_fake[0], torch.zeros_like(score_fake[0]))
+            loss_d_fake += criterion(score_fake[1], torch.zeros_like(score_fake[1]))
 
-        for (feats_fake, score_fake), (feats_real, score_real) in zip(disc_fake, disc_real):
-            adv_loss += criterion(score_fake, torch.ones_like(score_fake))
+        for score_fake, score_real in zip(disc_fake_multiscale, disc_real_multiscale):
+            adv_loss += criterion(score_fake[0], torch.ones_like(score_fake[0]))
+            adv_loss += criterion(score_fake[1], torch.ones_like(score_fake[1]))
+            loss_d_real += criterion(score_real[0], torch.ones_like(score_real[0]))
+            loss_d_real += criterion(score_real[1], torch.ones_like(score_real[1]))
+            loss_d_fake += criterion(score_fake[0], torch.zeros_like(score_fake[0]))
+            loss_d_fake += criterion(score_fake[1], torch.zeros_like(score_fake[1]))
 
-            if hp.model.feat_loss :
-                for feat_f, feat_r in zip(feats_fake, feats_real):
-                    adv_loss += hp.model.feat_match * torch.mean(torch.abs(feat_f - feat_r))
-            loss_d_real += criterion(score_real, torch.ones_like(score_real))
-            loss_d_fake += criterion(score_fake, torch.zeros_like(score_fake))
-        adv_loss = adv_loss / len(disc_fake)
-        loss_d_real = loss_d_real / len(score_real)
-        loss_d_fake = loss_d_fake / len(disc_fake)
+        feat_weights = 4.0 / (2 + 1)  # Number of downsample layer in discriminator = 2
+        D_weights = 1.0 / 7.0  # number of discriminator = 7
+        wt = D_weights * feat_weights
+        loss_feat = 0
+        if hp.model.feat_loss:
+            for feats_fake, feats_real in zip(disc_fake, disc_real):
+                loss_feat += wt * torch.mean(torch.abs(feats_fake[0] - feats_real[0]))
+                loss_feat += wt * torch.mean(torch.abs(feats_fake[1] - feats_real[1]))
+            for feats_fake, feats_real in zip(disc_fake_multiscale, disc_real_multiscale):
+                loss_feat += wt * torch.mean(torch.abs(feats_fake[0] - feats_real[0]))
+                loss_feat += wt * torch.mean(torch.abs(feats_fake[1] - feats_real[1]))
+
+        adv_loss = 0.5 * adv_loss
+
         loss_g += hp.model.lambda_adv * adv_loss
+        loss_g += hp.model.feat_match * loss_feat
         loss_d = loss_d_real + loss_d_fake
         loss_g_sum += loss_g.item()
         loss_d_sum += loss_d.item()

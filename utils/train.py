@@ -10,7 +10,7 @@ from model.hierarchical_discriminator import Heirarchical_JCU_Discriminator
 from .utils import get_commit_hash
 from .validation import validate
 from utils.stft_loss import MultiResolutionSTFTLoss
-
+import torchaudio
 
 def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, hp_str):
     model_g = Generator(hp.audio.n_mel_channels, hp.model.n_residual_layers,
@@ -60,16 +60,11 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
         model_d.train()
         stft_loss = MultiResolutionSTFTLoss()
         criterion = torch.nn.MSELoss().cuda()
-        sub_stft_loss = MultiResolutionSTFTLoss(hp.subband_stft_loss_params.fft_sizes,
-                                                hp.subband_stft_loss_params.hop_sizes,
-                                                hp.subband_stft_loss_params.win_lengths)
-        
-        pqmf = PQMF()
 
         for epoch in itertools.count(init_epoch+1):
-            # if epoch % hp.log.validation_interval == 0:
-            #     with torch.no_grad():
-            #         validate(hp, args, model_g, model_d, valloader, stft_loss, sub_stft_loss, criterion, pqmf, writer, step)
+            if epoch % hp.log.validation_interval == 0:
+                with torch.no_grad():
+                    validate(hp, args, model_g, model_d, valloader, stft_loss, criterion, writer, step)
 
             trainloader.dataset.shuffle_mapping()
             loader = tqdm.tqdm(trainloader, desc='Loading train data')
@@ -106,13 +101,13 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
 
                     for score_fake in disc_fake:
                         # adv_loss += torch.mean(torch.sum(torch.pow(score_fake - 1.0, 2), dim=[1, 2]))
-                        adv_loss += criterion(score_fake[0], torch.ones_like(score_fake))
-                        adv_loss += criterion(score_fake[1], torch.ones_like(score_fake))
+                        adv_loss += criterion(score_fake[0], torch.ones_like(score_fake[0]))
+                        adv_loss += criterion(score_fake[1], torch.ones_like(score_fake[1]))
 
                     for score_fake in disc_fake_multiscale:
                         # adv_loss += torch.mean(torch.sum(torch.pow(score_fake - 1.0, 2), dim=[1, 2]))
-                        adv_loss += criterion(score_fake[0], torch.ones_like(score_fake))
-                        adv_loss += criterion(score_fake[1], torch.ones_like(score_fake))
+                        adv_loss += criterion(score_fake[0], torch.ones_like(score_fake[0]))
+                        adv_loss += criterion(score_fake[1], torch.ones_like(score_fake[1]))
 
                     adv_loss = 0.5 * adv_loss
 
@@ -137,8 +132,8 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                 # discriminator
                 loss_d_avg = 0.0
                 if step > hp.train.discriminator_train_start_steps:
-                    sub_4, sub_3, sub_2, sub_1, fake_audio = model_g(melD)[:, :, :hp.audio.segment_length]
-
+                    sub_4, sub_3, sub_2, sub_1, fake_audio = model_g(melD)
+                    fake_audio = fake_audio[:, :, :hp.audio.segment_length]
                     sub_4, sub_3, sub_2, sub_1, fake_audio = sub_4.detach(), sub_3.detach(), sub_2.detach(), sub_1.detach(), fake_audio.detach()
                     loss_d_sum = 0.0
                     for _ in range(hp.train.rep_discriminator):
@@ -149,20 +144,19 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                         sub_orig_3 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 8))(audioD)
                         sub_orig_4 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 16))(audioD)
                         disc_real, disc_real_multiscale = model_d([sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4], audioD, melD)
-                        loss_d = 0.0
                         loss_d_real = 0.0
                         loss_d_fake = 0.0
                         for score_fake, score_real in zip(disc_fake, disc_real):
-                            loss_d_real += criterion(score_real[0], torch.ones_like(score_real)) # Unconditional
-                            loss_d_real += criterion(score_real[1], torch.ones_like(score_real)) # Conditional
-                            loss_d_fake += criterion(score_fake[0], torch.zeros_like(score_fake))
-                            loss_d_fake += criterion(score_fake[1], torch.zeros_like(score_fake))
+                            loss_d_real += criterion(score_real[0], torch.ones_like(score_real[0])) # Unconditional
+                            loss_d_real += criterion(score_real[1], torch.ones_like(score_real[1])) # Conditional
+                            loss_d_fake += criterion(score_fake[0], torch.zeros_like(score_fake[0]))
+                            loss_d_fake += criterion(score_fake[1], torch.zeros_like(score_fake[1]))
 
                         for score_fake, score_real in zip(disc_fake_multiscale, disc_real_multiscale):
-                            loss_d_real += criterion(score_real[0], torch.ones_like(score_real))
-                            loss_d_real += criterion(score_real[1], torch.ones_like(score_real))
-                            loss_d_fake += criterion(score_fake[0], torch.zeros_like(score_fake))
-                            loss_d_fake += criterion(score_fake[1], torch.zeros_like(score_fake))
+                            loss_d_real += criterion(score_real[0], torch.ones_like(score_real[0]))
+                            loss_d_real += criterion(score_real[1], torch.ones_like(score_real[1]))
+                            loss_d_fake += criterion(score_fake[0], torch.zeros_like(score_fake[0]))
+                            loss_d_fake += criterion(score_fake[1], torch.zeros_like(score_fake[1]))
 
                         loss_d_real = 0.5 * loss_d_real #/ len(disc_real) # len(disc_real) = 3
                         loss_d_fake = 0.5 * loss_d_fake #/ len(disc_fake) # len(disc_fake) = 3

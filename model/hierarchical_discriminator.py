@@ -18,7 +18,7 @@ class Heirarchical_JCU_Discriminator(nn.Module):
     def forward(self, sub_X, x, mel):
         results = []
         multi_scale_out = self.multiscale_discriminator(x, mel) # D0
-        i = 1
+        i = 0
         for key, disc in self.model.items():
             results.append(disc(sub_X[i], mel)) # [[uncond, cond], [uncond, cond], [uncond, cond], [uncond, cond]]
             i = i + 1
