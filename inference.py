@@ -7,7 +7,6 @@ from scipy.io.wavfile import write
 import numpy as np
 from model.generator import Generator
 from utils.hparams import HParam, load_hparam_str
-from utils.pqmf import PQMF
 from denoiser import Denoiser
 
 MAX_WAV_VALUE = 32768.0
@@ -32,10 +31,7 @@ def main(args):
             mel = mel.unsqueeze(0)
         mel = mel.cuda()
         audio = model.inference(mel)
-        # For multi-band inference
-        if hp.model.out_channels > 1:
-            pqmf = PQMF()
-            audio = pqmf.synthesis(audio).view(-1)
+
         audio = audio.squeeze(0)  # collapse all dimension except time axis
         if args.d:
             denoiser = Denoiser(model).cuda()

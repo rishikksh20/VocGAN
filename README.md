@@ -1,4 +1,44 @@
 # VocGAN
-VocGAN: A High-Fidelity Real-time Vocoder with a Hierarchically-nested Adversarial Network
+Unofficial PyTorch implementation of [VocGAN: A High-Fidelity Real-time Vocoder with a Hierarchically-nested Adversarial Network](https://arxiv.org/abs/2007.15256).
 
 ![](./assets/vocgan.JPG)
+
+Tested on Python 3.6
+```bash
+pip install -r requirements.txt
+```
+
+## Prepare Dataset
+
+- Download dataset for training. This can be any wav files with sample rate 22050Hz. (e.g. LJSpeech was used in paper)
+- preprocess: `python preprocess.py -c config/default.yaml -d [data's root path]`
+- Edit configuration `yaml` file
+
+## Train & Tensorboard
+
+- `python trainer.py -c [config yaml file] -n [name of the run]`
+  - `cp config/default.yaml config/config.yaml` and then edit `config.yaml`
+  - Write down the root path of train/validation files to 2nd/3rd line.
+  
+- `tensorboard --logdir logs/`
+
+## Pretrained model
+Check out [here](https://drive.google.com/drive/folders/12XX1QB9LzzMC4pdC_k8EWdvfKDhoEOa9?usp=sharing).
+
+## Inference
+
+- `python inference.py -p [checkpoint path] -i [input mel path]`
+
+## Results
+[WIP]
+
+## References
+- [VocGAN](https://arxiv.org/abs/2007.15256)
+- [Multi-band MelGAN](https://arxiv.org/abs/2005.05106)
+- [MelGAN](https://arxiv.org/abs/1910.06711)
+- [Pytorch implementation of melgan](https://github.com/seungwonpark/melgan)
+- [Official implementation of melgan](https://github.com/descriptinc/melgan-neurips)
+- [Multi, Full-band melgan implementation](https://github.com/kan-bayashi/ParallelWaveGAN)
+- [Nvidia's pre-processing](https://github.com/NVIDIA/tacotron2)
+- [WaveRNN](https://github.com/fatchord/WaveRNN)
+

@@ -190,7 +190,7 @@ class Generator(nn.Module):
         zero = torch.full((1, self.mel_channel, 10), -11.5129).to(mel.device)
         mel = torch.cat((mel, zero), dim=2)
 
-        audio = self.forward(mel)
+        _, _, _, _, audio = self.forward(mel)
         return audio
 
 
