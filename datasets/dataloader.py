@@ -73,8 +73,32 @@ class MelFromDisk(Dataset):
             audio = audio[:, audio_start:audio_start+self.hp.audio.segment_length]
 
         audio = audio + (1/32768) * torch.randn_like(audio)
-        sub_orig_1 = torchaudio.transforms.Resample(sr, (sr // 2))(audio)
-        sub_orig_2 = torchaudio.transforms.Resample(sr, (sr // 4))(audio)
-        sub_orig_3 = torchaudio.transforms.Resample(sr, (sr // 8))(audio)
-        sub_orig_4 = torchaudio.transforms.Resample(sr, (sr // 16))(audio)
-        return mel, audio, sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4
+        return mel, audio
+
+
+def collate_fn(batch):
+
+    sr = 22050
+    # perform padding and conversion to tensor
+    mels_g = [x[0][0] for x in batch]
+    audio_g = [x[0][1] for x in batch]
+
+    mels_g = torch.stack(mels_g)
+    audio_g = torch.stack(audio_g)
+
+    sub_orig_1 = torchaudio.transforms.Resample(sr, (sr // 2))(audio_g)
+    sub_orig_2 = torchaudio.transforms.Resample(sr, (sr // 4))(audio_g)
+    sub_orig_3 = torchaudio.transforms.Resample(sr, (sr // 8))(audio_g)
+    sub_orig_4 = torchaudio.transforms.Resample(sr, (sr // 16))(audio_g)
+
+    mels_d = [x[1][0] for x in batch]
+    audio_d = [x[1][1] for x in batch]
+    mels_d = torch.stack(mels_d)
+    audio_d = torch.stack(audio_d)
+    sub_orig_1_d = torchaudio.transforms.Resample(sr, (sr // 2))(audio_d)
+    sub_orig_2_d = torchaudio.transforms.Resample(sr, (sr // 4))(audio_d)
+    sub_orig_3_d = torchaudio.transforms.Resample(sr, (sr // 8))(audio_d)
+    sub_orig_4_d = torchaudio.transforms.Resample(sr, (sr // 16))(audio_d)
+
+    return [mels_g, audio_g, sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4],\
+           [mels_d, audio_d, sub_orig_1_d, sub_orig_2_d, sub_orig_3_d, sub_orig_4_d]

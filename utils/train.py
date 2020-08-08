@@ -71,13 +71,12 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
             avg_g_loss = []
             avg_d_loss = []
             avg_adv_loss = []
-            for (melG, audioG, sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4), \
-                (melD, audioD, sub_orig_1_d, sub_orig_2_d, sub_orig_3_d, sub_orig_4_d) in loader:
+            for (melG, audioG), \
+                (melD, audioD) in loader:
                 melG = melG.cuda()      # torch.Size([16, 80, 64])
                 audioG = audioG.cuda()  # torch.Size([16, 1, 16000])
                 melD = melD.cuda()      # torch.Size([16, 80, 64])
                 audioD = audioD.cuda()  #torch.Size([16, 1, 16000]
-
                 # generator
                 optim_g.zero_grad()
                 sub_4, sub_3, sub_2, sub_1, fake_audio = model_g(melG)  # torch.Size([16, 1, 12800])
@@ -93,8 +92,8 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                 sample_rate = hp.audio.sampling_rate
                 if step > hp.train.discriminator_train_start_steps:
 
-                    disc_real, disc_real_multiscale = model_d([sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4], audioG, melG)
-                    disc_fake, disc_fake_multiscale = model_d([sub_4, sub_3, sub_2, sub_1], fake_audio, melG)
+                    disc_real, disc_real_multiscale = model_d(audioG, melG)
+                    disc_fake, disc_fake_multiscale = model_d(fake_audio, melG, [sub_4, sub_3, sub_2, sub_1])
                     # for multi-scale discriminator
 
                     for score_fake in disc_fake:
@@ -136,8 +135,8 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                     loss_d_sum = 0.0
                     for _ in range(hp.train.rep_discriminator):
                         optim_d.zero_grad()
-                        disc_fake, disc_fake_multiscale = model_d([sub_4, sub_3, sub_2, sub_1], fake_audio, melD)
-                        disc_real, disc_real_multiscale = model_d([sub_orig_1_d, sub_orig_2_d, sub_orig_3_d, sub_orig_4_d], audioD, melD)
+                        disc_fake, disc_fake_multiscale = model_d(fake_audio, melD, [sub_4, sub_3, sub_2, sub_1])
+                        disc_real, disc_real_multiscale = model_d(audioD, melD)
                         loss_d_real = 0.0
                         loss_d_fake = 0.0
                         for score_fake, score_real in zip(disc_fake, disc_real):
