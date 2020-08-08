@@ -4,7 +4,6 @@ import tqdm
 import torch
 import argparse
 import numpy as np
-
 from utils.stft import TacotronSTFT
 from utils.hparams import HParam
 from utils.utils import read_wav_np
@@ -21,8 +20,9 @@ def main(hp, args):
 
     wav_files = glob.glob(os.path.join(args.data_path, '**', '*.wav'), recursive=True)
     mel_path = hp.data.mel_path
-    os.makedirs(mel_path, exist_ok=True)
 
+    # Create all folders
+    os.makedirs(mel_path, exist_ok=True)
     for wavpath in tqdm.tqdm(wav_files, desc='preprocess wav to mel'):
         sr, wav = read_wav_np(wavpath)
         assert sr == hp.audio.sampling_rate, \
@@ -35,6 +35,7 @@ def main(hp, args):
 
         wav = torch.from_numpy(wav).unsqueeze(0)
         mel = stft.mel_spectrogram(wav)  # mel [1, num_mel, T]
+
         mel = mel.squeeze(0)  # [num_mel, T]
         id = os.path.basename(wavpath).split(".")[0]
         np.save('{}/{}.npy'.format(mel_path, id), mel.numpy(), allow_pickle=False)

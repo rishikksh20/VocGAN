@@ -71,7 +71,8 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
             avg_g_loss = []
             avg_d_loss = []
             avg_adv_loss = []
-            for (melG, audioG), (melD, audioD) in loader:
+            for (melG, audioG, sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4), \
+                (melD, audioD, sub_orig_1_d, sub_orig_2_d, sub_orig_3_d, sub_orig_4_d) in loader:
                 melG = melG.cuda()      # torch.Size([16, 80, 64])
                 audioG = audioG.cuda()  # torch.Size([16, 1, 16000])
                 melD = melD.cuda()      # torch.Size([16, 80, 64])
@@ -91,10 +92,7 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                 adv_loss = 0.0
                 sample_rate = hp.audio.sampling_rate
                 if step > hp.train.discriminator_train_start_steps:
-                    sub_orig_1 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 2))(audioG)
-                    sub_orig_2 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 4))(audioG)
-                    sub_orig_3 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 8))(audioG)
-                    sub_orig_4 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 16))(audioG)
+
                     disc_real, disc_real_multiscale = model_d([sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4], audioG, melG)
                     disc_fake, disc_fake_multiscale = model_d([sub_4, sub_3, sub_2, sub_1], fake_audio, melG)
                     # for multi-scale discriminator
@@ -139,11 +137,7 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                     for _ in range(hp.train.rep_discriminator):
                         optim_d.zero_grad()
                         disc_fake, disc_fake_multiscale = model_d([sub_4, sub_3, sub_2, sub_1], fake_audio, melD)
-                        sub_orig_1 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 2))(audioD)
-                        sub_orig_2 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 4))(audioD)
-                        sub_orig_3 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 8))(audioD)
-                        sub_orig_4 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 16))(audioD)
-                        disc_real, disc_real_multiscale = model_d([sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4], audioD, melD)
+                        disc_real, disc_real_multiscale = model_d([sub_orig_1_d, sub_orig_2_d, sub_orig_3_d, sub_orig_4_d], audioD, melD)
                         loss_d_real = 0.0
                         loss_d_fake = 0.0
                         for score_fake, score_real in zip(disc_fake, disc_real):

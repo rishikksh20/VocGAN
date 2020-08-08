@@ -10,7 +10,7 @@ def validate(hp, args, generator, discriminator, valloader, stft_loss, criterion
     loader = tqdm.tqdm(valloader, desc='Validation loop')
     loss_g_sum = 0.0
     loss_d_sum = 0.0
-    for mel, audio in loader:
+    for mel, audio, sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4 in loader:
         mel = mel.cuda()
         audio = audio.cuda()    # B, 1, T torch.Size([1, 1, 212893])
 
@@ -22,11 +22,6 @@ def validate(hp, args, generator, discriminator, valloader, stft_loss, criterion
         adv_loss = 0.0
         loss_d = 0.0
         if step > hp.train.discriminator_train_start_steps:
-            sample_rate = hp.audio.sampling_rate
-            sub_orig_1 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 2))(audio)
-            sub_orig_2 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 4))(audio)
-            sub_orig_3 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 8))(audio)
-            sub_orig_4 = torchaudio.transforms.Resample(sample_rate, (sample_rate // 16))(audio)
             disc_real, disc_real_multiscale = discriminator([sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4], audio, mel)
             disc_fake, disc_fake_multiscale = discriminator([sub_4, sub_3, sub_2, sub_1], fake_audio[:, :, :audio.size(2)], mel)
 

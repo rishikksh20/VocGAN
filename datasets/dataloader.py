@@ -4,7 +4,7 @@ import torch
 import random
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
-
+import torchaudio
 from utils.utils import read_wav_np
 
 
@@ -52,6 +52,7 @@ class MelFromDisk(Dataset):
         id = os.path.basename(wavpath).split(".")[0]
 
         mel_path = "{}/{}.npy".format(self.hp.data.mel_path, id)
+
         sr, audio = read_wav_np(wavpath)
         if len(audio) < self.hp.audio.segment_length + self.hp.audio.pad_short:
             audio = np.pad(audio, (0, self.hp.audio.segment_length + self.hp.audio.pad_short - len(audio)), \
@@ -72,4 +73,8 @@ class MelFromDisk(Dataset):
             audio = audio[:, audio_start:audio_start+self.hp.audio.segment_length]
 
         audio = audio + (1/32768) * torch.randn_like(audio)
-        return mel, audio
+        sub_orig_1 = torchaudio.transforms.Resample(sr, (sr // 2))(audio)
+        sub_orig_2 = torchaudio.transforms.Resample(sr, (sr // 4))(audio)
+        sub_orig_3 = torchaudio.transforms.Resample(sr, (sr // 8))(audio)
+        sub_orig_4 = torchaudio.transforms.Resample(sr, (sr // 16))(audio)
+        return mel, audio, sub_orig_1, sub_orig_2, sub_orig_3, sub_orig_4
