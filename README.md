@@ -42,7 +42,7 @@ pip install -r requirements.txt
 - [MelGAN](https://arxiv.org/abs/1910.06711)
 - [Pytorch implementation of melgan](https://github.com/seungwonpark/melgan)
 - [Official implementation of melgan](https://github.com/descriptinc/melgan-neurips)
-- [Multi, Full-band melgan implementation](https://github.com/kan-bayashi/ParallelWaveGAN)
+- [Multi, Full-band melgan implementation](https://github.com/rishikksh20/melgan)
 - [Nvidia's pre-processing](https://github.com/NVIDIA/tacotron2)
 - [WaveRNN](https://github.com/fatchord/WaveRNN)
 
