@@ -4,21 +4,28 @@ import tqdm
 import torch
 import itertools
 import traceback
+import numpy as np
 from model.generator import ModifiedGenerator
 from model.multiscale import MultiScaleDiscriminator
 from .utils import get_commit_hash
 from .validation import validate
 from utils.stft_loss import MultiResolutionSTFTLoss
-import torchaudio
+
+def num_params(model, print_out=True):
+    parameters = filter(lambda p: p.requires_grad, model.parameters())
+    parameters = sum([np.prod(p.size()) for p in parameters]) / 1_000_000
+    if print_out:
+        print('Trainable Parameters: %.3fM' % parameters)
 
 def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, hp_str):
     model_g = ModifiedGenerator(hp.audio.n_mel_channels, hp.model.n_residual_layers,
                         ratios=hp.model.generator_ratio, mult = hp.model.mult,
                         out_band = hp.model.out_channels).cuda()
-    #print("Generator : \n",model_g)
-
+    print("Generator : \n")
+    num_params(model_g)
     model_d = MultiScaleDiscriminator().cuda()
-    #print("Discriminator : \n", model_d)
+    print("Discriminator : \n")
+    num_params(model_d)
     optim_g = torch.optim.Adam(model_g.parameters(),
         lr=hp.train.adam.lr, betas=(hp.train.adam.beta1, hp.train.adam.beta2))
     optim_d = torch.optim.Adam(model_d.parameters(),
