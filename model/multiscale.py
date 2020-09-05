@@ -1,11 +1,31 @@
 import torch
 import torch.nn as nn
 from utils.utils import weights_init
-from model.discriminator import JCU_Discriminator
-
+from model.discriminator import JCU_Discriminator, Discriminator
 
 
 class MultiScaleDiscriminator(nn.Module):
+    def __init__(self, num_D = 3, ndf = 16, n_layers = 3, downsampling_factor = 4, disc_out = 512):
+        super().__init__()
+        self.model = nn.ModuleDict()
+        for i in range(num_D):
+            self.model[f"disc_{i}"] = Discriminator(
+                ndf, n_layers, downsampling_factor, disc_out
+            )
+
+        self.downsample = nn.AvgPool1d(downsampling_factor, stride=2, padding=1, count_include_pad=False)
+        self.apply(weights_init)
+
+    def forward(self, x):
+        results = []
+        for key, disc in self.model.items():
+            results.append(disc(x))
+            x = self.downsample(x)
+        return results
+
+
+
+class MultiScaleDiscriminatorJCU(nn.Module):
     def __init__(self, num_D = 3, downsampling_factor = 4):
         super(MultiScaleDiscriminator, self).__init__()
         self.model = nn.ModuleDict()
