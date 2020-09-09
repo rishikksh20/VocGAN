@@ -5,7 +5,7 @@ import torch
 import argparse
 from scipy.io.wavfile import write
 import numpy as np
-from model.generator import Generator
+from model.generator import ModifiedGenerator
 from utils.hparams import HParam, load_hparam_str
 from denoiser import Denoiser
 
@@ -19,7 +19,7 @@ def main(args):
     else:
         hp = load_hparam_str(checkpoint['hp_str'])
 
-    model = Generator(hp.audio.n_mel_channels, hp.model.n_residual_layers,
+    model = ModifiedGenerator(hp.audio.n_mel_channels, hp.model.n_residual_layers,
                         ratios=hp.model.generator_ratio, mult = hp.model.mult,
                         out_band = hp.model.out_channels).cuda()
     model.load_state_dict(checkpoint['model_g'])

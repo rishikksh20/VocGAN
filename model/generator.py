@@ -346,6 +346,42 @@ class ModifiedGenerator(nn.Module):
 
         return out #out1, out2, out3, out4, out
 
+    def eval(self, inference=False):
+        super(ModifiedGenerator, self).eval()
+
+        # don't remove weight norm while validation in training loop
+        if inference:
+            self.remove_weight_norm()
+
+    # def remove_weight_norm(self):
+    #     for idx, layer in enumerate(self.generator):
+    #         if len(layer.state_dict()) != 0:
+    #             try:
+    #                 nn.utils.remove_weight_norm(layer)
+    #             except:
+    #                 layer.remove_weight_norm()
+
+    def remove_weight_norm(self):
+        """Remove weight normalization module from all of the layers."""
+
+        def _remove_weight_norm(m):
+            try:
+                torch.nn.utils.remove_weight_norm(m)
+            except ValueError:  # this module didn't have weight norm
+                return
+
+        self.apply(_remove_weight_norm)
+
+    def apply_weight_norm(self):
+        """Apply weight normalization module from all of the layers."""
+
+        def _apply_weight_norm(m):
+            if isinstance(m, torch.nn.Conv1d) or isinstance(m, torch.nn.ConvTranspose1d):
+                torch.nn.utils.weight_norm(m)
+
+        self.apply(_apply_weight_norm)
+
+
     def inference(self, mel):
         hop_length = 256
         # pad input mel with zeros to cut artifact
