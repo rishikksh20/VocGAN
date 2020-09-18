@@ -44,7 +44,7 @@ class MyWriter(SummaryWriter):
             self.is_first = False
 
     def log_evaluation(self, generated, step, name):
-        self.add_audio(f'{name}', generated, step, self.sample_rate)
+        self.add_audio(f'evaluation/{name}', generated, step, self.sample_rate)
 
     def log_histogram(self, model, step):
         for tag, value in model.named_parameters():
