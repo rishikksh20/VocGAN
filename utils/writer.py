@@ -35,7 +35,7 @@ class MyWriter(SummaryWriter):
         self.log_histogram(discriminator, step)
         
     def log_evaluation(self, generated, step):
-        self.add_audio('raw_audio_target', generated, step, self.sample_rate)
+        self.add_audio('inferenced_audio', generated, step, self.sample_rate)
 
         if self.is_first:
             self.add_audio('raw_audio_target', target, step, self.sample_rate)
