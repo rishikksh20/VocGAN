@@ -13,7 +13,7 @@ def create_dataloader(hp, args, train):
 
     if train:
         return DataLoader(dataset=dataset, batch_size=hp.train.batch_size, shuffle=True,
-            num_workers=0, pin_memory=True, drop_last=True)
+            num_workers=6, pin_memory=True, drop_last=True)
     else:
         return DataLoader(dataset=dataset, batch_size=1, shuffle=False,
             num_workers=0, pin_memory=False, drop_last=False)
