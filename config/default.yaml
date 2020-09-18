@@ -2,6 +2,7 @@ data: # root path of train/validation data (either relative/absoulte path is ok)
   train: 'H:\Deepsync\backup\deepsync\LJSpeech-1.1\wavs'
   validation: 'H:\Deepsync\backup\deepsync\LJSpeech-1.1\valid'
   mel_path: 'H:\Deepsync\backup\fastspeech\data\mels'
+  eval_path: ''
 ---
 train:
   rep_discriminator: 1
