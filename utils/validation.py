@@ -1,5 +1,7 @@
 import tqdm
 import torch
+from plotting import get_files
+from scipy.io.wavfile import write
 
 def validate(hp, args, generator, discriminator, valloader, stft_loss, criterion, writer, step):
     generator.eval()
@@ -51,6 +53,28 @@ def validate(hp, args, generator, discriminator, valloader, stft_loss, criterion
     fake_audio = fake_audio[0][0].cpu().detach().numpy()
 
     writer.log_validation(loss_g_avg, loss_d_avg, adv_loss, generator, discriminator, audio, fake_audio, step)
+    
+    mel_filename = get_files(hp.data.eval_path , extension = '.npy')
+    for j in range(0,len(mel_filename)):
+        mel = torch.from_numpy(np.load(mel_filename[j]))
+        if len(mel.shape) == 2:
+            mel = mel.unsqueeze(0)
+        mel = mel.cuda()
+        gen_audio = generator(mel)
+        gen_audio = gen_audio.squeeze(0)
+        gen_audio = gen_audio.squeeze()
+        gen_audio = gen_audio[:-(hp.audio.hop_length*10)]
+        gen_audio = MAX_WAV_VALUE * audio
+        gen_audio = gen_audio.clamp(min=-MAX_WAV_VALUE, max=MAX_WAV_VALUE-1)
+        gen_audio = gen_audio.short()
+        gen_audio = gen_audio.cpu().detach().numpy()
+        out_path = mel_filename[j].replace('.npy', f'{step}.wav')
+        mel_name = mel_filename.split("/")[-1].split(".")[0]
+        writer.log_evaluation(gen_audio, step, mel_name)
+        write(out_path, hp.audio.sampling_rate, gen_audio)
+                   
+    
+    #add evalution code here
 
     torch.backends.cudnn.benchmark = True
     generator.train()
