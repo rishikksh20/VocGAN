@@ -1,7 +1,10 @@
 import tqdm
 import torch
-from plotting import get_files
+from utils.plotting import get_files
 from scipy.io.wavfile import write
+import numpy as np
+
+MAX_WAV_VALUE = 32768.0
 
 def validate(hp, args, generator, discriminator, valloader, stft_loss, criterion, writer, step):
     generator.eval()
@@ -64,7 +67,7 @@ def validate(hp, args, generator, discriminator, valloader, stft_loss, criterion
         gen_audio = gen_audio.squeeze(0)
         gen_audio = gen_audio.squeeze()
         gen_audio = gen_audio[:-(hp.audio.hop_length*10)]
-        gen_audio = MAX_WAV_VALUE * audio
+        gen_audio = MAX_WAV_VALUE * gen_audio
         gen_audio = gen_audio.clamp(min=-MAX_WAV_VALUE, max=MAX_WAV_VALUE-1)
         gen_audio = gen_audio.short()
         gen_audio = gen_audio.cpu().detach().numpy()

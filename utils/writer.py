@@ -33,9 +33,6 @@ class MyWriter(SummaryWriter):
                        step, dataformats='HWC')
         self.log_histogram(generator, step)
         self.log_histogram(discriminator, step)
-        
-    def log_evaluation(self, generated, step, name):
-        self.add_audio(f'{name}', generated, step, self.sample_rate)
 
         if self.is_first:
             self.add_audio('raw_audio_target', target, step, self.sample_rate)
@@ -45,6 +42,9 @@ class MyWriter(SummaryWriter):
             self.add_image('melspectrogram_target', plot_spectrogram_to_numpy(mel.squeeze(0).data.cpu().numpy()),
                            step, dataformats='HWC')
             self.is_first = False
+
+    def log_evaluation(self, generated, step, name):
+        self.add_audio(f'{name}', generated, step, self.sample_rate)
 
     def log_histogram(self, model, step):
         for tag, value in model.named_parameters():
