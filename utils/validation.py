@@ -51,6 +51,8 @@ def validate(hp, args, generator, discriminator, valloader, stft_loss, criterion
     fake_audio = fake_audio[0][0].cpu().detach().numpy()
 
     writer.log_validation(loss_g_avg, loss_d_avg, adv_loss, generator, discriminator, audio, fake_audio, step)
+    
+    #add evalution code here
 
     torch.backends.cudnn.benchmark = True
     generator.train()
