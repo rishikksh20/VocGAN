@@ -33,6 +33,9 @@ class MyWriter(SummaryWriter):
                        step, dataformats='HWC')
         self.log_histogram(generator, step)
         self.log_histogram(discriminator, step)
+        
+    def log_evaluation(self, generated, step):
+        self.add_audio('raw_audio_target', generated, step, self.sample_rate)
 
         if self.is_first:
             self.add_audio('raw_audio_target', target, step, self.sample_rate)
