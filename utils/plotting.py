@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pylab as plt
 import numpy as np
+import glob
 
 
 def save_figure_to_numpy(fig, spectrogram = False):
@@ -44,3 +45,9 @@ def plot_spectrogram_to_numpy(spectrogram):
     data = save_figure_to_numpy(fig, True)
     plt.close()
     return data
+
+def get_files(path, extension='.wav') :
+    filenames = []
+    for filename in glob.iglob(f'{path}/*{extension}', recursive=True):
+        filenames += [filename]
+    return filenames

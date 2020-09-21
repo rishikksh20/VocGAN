@@ -43,6 +43,9 @@ class MyWriter(SummaryWriter):
                            step, dataformats='HWC')
             self.is_first = False
 
+    def log_evaluation(self, generated, step, name):
+        self.add_audio(f'evaluation/{name}', generated, step, self.sample_rate)
+
     def log_histogram(self, model, step):
         for tag, value in model.named_parameters():
             self.add_histogram(tag.replace('.', '/'), value.cpu().detach().numpy(), step)
