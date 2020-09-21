@@ -56,26 +56,26 @@ def validate(hp, args, generator, discriminator, valloader, stft_loss, criterion
     fake_audio = fake_audio[0][0].cpu().detach().numpy()
 
     writer.log_validation(loss_g_avg, loss_d_avg, adv_loss, generator, discriminator, audio, fake_audio, step)
-    
-    mel_filename = get_files(hp.data.eval_path , extension = '.npy')
-    for j in range(0,len(mel_filename)):
-        with torch.no_grad():
-            mel = torch.from_numpy(np.load(mel_filename[j]))
-            out_path = mel_filename[j].replace('.npy', f'{step}.wav')
-            mel_name = mel_filename[j].split("/")[-1].split(".")[0]
-            if len(mel.shape) == 2:
-                mel = mel.unsqueeze(0)
-            mel = mel.cuda()
-            gen_audio = generator.inference(mel)
-            gen_audio = gen_audio.squeeze()
-            gen_audio = gen_audio[:-(hp.audio.hop_length*10)]
-            writer.log_evaluation(gen_audio.cpu().detach().numpy(), step, mel_name)
-            gen_audio = MAX_WAV_VALUE * gen_audio
-            gen_audio = gen_audio.clamp(min=-MAX_WAV_VALUE, max=MAX_WAV_VALUE-1)
-            gen_audio = gen_audio.short()
-            gen_audio = gen_audio.cpu().detach().numpy()
+    if hp.data.eval_path is not None:
+        mel_filename = get_files(hp.data.eval_path , extension = '.npy')
+        for j in range(0,len(mel_filename)):
+            with torch.no_grad():
+                mel = torch.from_numpy(np.load(mel_filename[j]))
+                out_path = mel_filename[j].replace('.npy', f'{step}.wav')
+                mel_name = mel_filename[j].split("/")[-1].split(".")[0]
+                if len(mel.shape) == 2:
+                    mel = mel.unsqueeze(0)
+                mel = mel.cuda()
+                gen_audio = generator.inference(mel)
+                gen_audio = gen_audio.squeeze()
+                gen_audio = gen_audio[:-(hp.audio.hop_length*10)]
+                writer.log_evaluation(gen_audio.cpu().detach().numpy(), step, mel_name)
+                gen_audio = MAX_WAV_VALUE * gen_audio
+                gen_audio = gen_audio.clamp(min=-MAX_WAV_VALUE, max=MAX_WAV_VALUE-1)
+                gen_audio = gen_audio.short()
+                gen_audio = gen_audio.cpu().detach().numpy()
 
-            write(out_path, hp.audio.sampling_rate, gen_audio)
+                write(out_path, hp.audio.sampling_rate, gen_audio)
 
 
     
