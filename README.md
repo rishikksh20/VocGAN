@@ -33,6 +33,16 @@ pip install -r requirements.txt
 
 - `python inference.py -p [checkpoint path] -i [input mel path]`
 
+
+## Pretrained models
+Two pretrained model are provided. Both pretrained models are trained using modified-VocGAN structure.
+* [LJSpeech-1.1](https://keithito.com/LJ-Speech-Dataset/)  (English, single-female speaker, trained for 4000 epochs) \[ [download](https://drive.google.com/file/d/1YCXTbPtVQ3aev7KsL0Cv0kZguEMKZuQp/view?usp=sharing) \]
+* [KSS dataset](https://www.kaggle.com/bryanpark/korean-single-speaker-speech-dataset)  (Korean, single-female speaker, trained for 4500 epochs) \[ [download](https://drive.google.com/file/d/1RIqMyj9vSCcGaRgAKrVB5Duvw22N6IXJ/view?usp=sharing) \]
+
+## Audio Samples
+Using pretrained models, we can reconstruct audio samples. Visit [here](https://drive.google.com/drive/folders/1QRS9BOQeOXV1aJHdz0ccoKzgfXJFbIKm?usp=sharing) to listen.
+
+
 ## Results
 [WIP]
 
