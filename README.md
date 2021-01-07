@@ -1,4 +1,5 @@
 # Modified VocGAN
+<noscript><a href="https://liberapay.com/rishikksh20/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></noscript> <br />
 This repo implements modified version of [VocGAN: A High-Fidelity Real-time Vocoder with a Hierarchically-nested Adversarial Network](https://arxiv.org/abs/2007.15256) using Pytorch, for actual VocGAN checkout to `baseline` branch. I bit modify the VocGAN's generator and used Full-Band MelGAN's discriminator instead of VocGAN's discriminator, as in my research I found MelGAN's discriminator is very fast while training and enough powerful to train Generator to produce high fidelity voice whereas VocGAN Hierarchically-nested JCU dicriminator is quite huge and extremely slows the training process.
 
 ![](./assets/vocgan.JPG)
