@@ -3,8 +3,8 @@ matplotlib
 numpy
 scipy
 tensorboardX
-torch
+torch==1.6.0
 tqdm
 pillow
 pyyaml
-torchaudio
+torchaudio==0.6.0
