@@ -1,6 +1,6 @@
 # Modified VocGAN
 <noscript><a href="https://liberapay.com/rishikksh20/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></noscript> <br />
-This repo implements modified version of [VocGAN: A High-Fidelity Real-time Vocoder with a Hierarchically-nested Adversarial Network](https://arxiv.org/abs/2007.15256) using Pytorch, for actual VocGAN checkout to `baseline` branch. I bit modify the VocGAN's generator and used Full-Band MelGAN's discriminator instead of VocGAN's discriminator, as in my research I found MelGAN's discriminator is very fast while training and enough powerful to train Generator to produce high fidelity voice whereas VocGAN Hierarchically-nested JCU dicriminator is quite huge and extremely slows the training process.
+This repo implements modified version of [VocGAN: A High-Fidelity Real-time Vocoder with a Hierarchically-nested Adversarial Network](https://arxiv.org/abs/2007.15256) using Pytorch, for actual VocGAN checkout to `baseline` branch. I bit modify the VocGAN's generator and used Full-Band MelGAN's discriminator instead of VocGAN's discriminator, as in my research I found MelGAN's discriminator is very fast while training and enough powerful to train Generator to produce high fidelity voice whereas VocGAN Hierarchically-nested JCU discriminator is quite huge and extremely slows the training process.
 
 ![](./assets/vocgan.JPG)
 
@@ -25,7 +25,7 @@ pip install -r requirements.txt
 
 ## Notes
 1) This repo implements modified VocGAN for faster training although for true VocGAN implementation please checkout `baseline` branch, In my testing I am available to generate High-Fidelity audio in real time from Modified VocGAN.
-2) Traning cost for `baseline` VocGAN's `Discriminator` is too high (2.8 sec/it on P100 with batch size 16) as compared to `Generator` (7.2 it/sec on P100 with batch size 16), so it's unfeasible for me to train this model for long time.
+2) Training cost for `baseline` VocGAN's `Discriminator` is too high (2.8 sec/it on P100 with batch size 16) as compared to `Generator` (7.2 it/sec on P100 with batch size 16), so it's unfeasible for me to train this model for long time.
 3) May be we can optimizer `baseline` VocGAN's Discriminator by downsampling the audio on pre-processing stage instead of Training stage (currently I used `torchaudio.transform.Resample` as layer for downsampling the audio), this step might be speed-up overall `Discriminator` training.
 4) I trained `baseline` model for 300 epochs (with batch size 16) on LJSpeech, and quality of generated audio is similar to the MelGAN at same epoch on same dataset. Author recommend to train model till 3000 epochs which is not feasible at current training speed `(2.80 sec/it)`.
 5) I am open for any suggestion and modification on this repo.
