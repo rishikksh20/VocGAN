@@ -95,6 +95,7 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                 loss_g = sc_loss + mag_loss
 
                 adv_loss = 0.0
+                rls_loss = 0.0
 
                 if step > hp.train.discriminator_train_start_steps:
 
@@ -107,6 +108,13 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                         adv_loss += criterion(score_fake, torch.ones_like(score_fake))
                     adv_loss = adv_loss / len(disc_fake)  # len(disc_fake) = 3
 
+                    ## For Pointwise Loss
+                    for (_, score_fake), (_, score_real) in zip(disc_fake, disc_real):
+                        rls_loss += torch.mean((score_fake - score_real - 1)**2)
+
+                    rls_loss = rls_loss / len(disc_fake)
+
+
                     # adv_loss = 0.5 * adv_loss
 
                     # loss_feat = 0
@@ -118,7 +126,8 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                             for feat_f, feat_r in zip(feats_fake, feats_real):
                                 adv_loss += hp.model.feat_match * torch.mean(torch.abs(feat_f - feat_r))
 
-                    loss_g += hp.model.lambda_adv * adv_loss
+                    loss_g += 4.0 * adv_loss
+                    loss_g += 0.4 * rls_loss
             
 
                 loss_g.backward()
@@ -135,14 +144,17 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                         disc_fake = model_d(fake_audio)
                         disc_real = model_d(audioD)
                         loss_d = 0.0
+                        loss_d_rls = 0.0
                         loss_d_real = 0.0
                         loss_d_fake = 0.0
                         for (_, score_fake), (_, score_real) in zip(disc_fake, disc_real):
                             loss_d_real += criterion(score_real, torch.ones_like(score_real))
                             loss_d_fake += criterion(score_fake, torch.zeros_like(score_fake))
+                            loss_d_rls += torch.mean((score_real - score_fake - 1)**2)
                         loss_d_real = loss_d_real / len(disc_real)  # len(disc_real) = 3
                         loss_d_fake = loss_d_fake / len(disc_fake)  # len(disc_fake) = 3
-                        loss_d = loss_d_real + loss_d_fake
+                        loss_d_rls = loss_d_rls / len(disc_fake)
+                        loss_d = loss_d_real + loss_d_fake + (0.4 * loss_d_rls)
                         loss_d.backward()
                         optim_d.step()
                         loss_d_sum += loss_d

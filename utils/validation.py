@@ -24,26 +24,33 @@ def validate(hp, args, generator, discriminator, valloader, stft_loss, criterion
         disc_fake = discriminator(fake_audio[:, :, :audio.size(2)]) # B, 1, T torch.Size([1, 1, 212893])
         disc_real = discriminator(audio)
 
-        adv_loss =0.0
+        adv_loss = 0.0
+        rls_loss = 0.0
         loss_d_real = 0.0
         loss_d_fake = 0.0
+        loss_d_rls = 0.0
         sc_loss, mag_loss = stft_loss(fake_audio[:, :, :audio.size(2)].squeeze(1), audio.squeeze(1))
         loss_g = sc_loss + mag_loss
 
 
         for (feats_fake, score_fake), (feats_real, score_real) in zip(disc_fake, disc_real):
             adv_loss += criterion(score_fake, torch.ones_like(score_fake))
+            rls_loss += torch.mean((score_fake - score_real - 1) ** 2)
 
             if hp.model.feat_loss :
                 for feat_f, feat_r in zip(feats_fake, feats_real):
                     adv_loss += hp.model.feat_match * torch.mean(torch.abs(feat_f - feat_r))
             loss_d_real += criterion(score_real, torch.ones_like(score_real))
             loss_d_fake += criterion(score_fake, torch.zeros_like(score_fake))
+            loss_d_rls += torch.mean((score_real - score_fake - 1) ** 2)
         adv_loss = adv_loss / len(disc_fake)
+        rls_loss = rls_loss / len(disc_fake)
+        loss_d_rls = loss_d_rls / len(disc_fake)
         loss_d_real = loss_d_real / len(score_real)
         loss_d_fake = loss_d_fake / len(disc_fake)
-        loss_g += hp.model.lambda_adv * adv_loss
-        loss_d = loss_d_real + loss_d_fake
+        loss_g += 4.0 * adv_loss
+        loss_g += 0.4 * rls_loss
+        loss_d = loss_d_real + loss_d_fake + (0.4 * loss_d_rls)
         loss_g_sum += loss_g.item()
         loss_d_sum += loss_d.item()
 
