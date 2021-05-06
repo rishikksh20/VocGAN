@@ -154,7 +154,7 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                 loss_g = loss_g.item()
                 avg_g_loss.append(loss_g)
                 avg_d_loss.append(loss_d_avg)
-                avg_adv_loss.append(adv_loss)
+                avg_adv_loss.append(adv_loss.item())
                 if any([loss_g > 1e8, math.isnan(loss_g), loss_d_avg > 1e8, math.isnan(loss_d_avg)]):
                     logger.error("loss_g %.01f loss_d_avg %.01f at step %d!" % (loss_g, loss_d_avg, step))
                     raise Exception("Loss exploded")
