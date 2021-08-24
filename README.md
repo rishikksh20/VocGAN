@@ -29,6 +29,7 @@ pip install -r requirements.txt
 3) May be we can optimizer `baseline` VocGAN's Discriminator by downsampling the audio on pre-processing stage instead of Training stage (currently I used `torchaudio.transform.Resample` as layer for downsampling the audio), this step might be speed-up overall `Discriminator` training.
 4) I trained `baseline` model for 300 epochs (with batch size 16) on LJSpeech, and quality of generated audio is similar to the MelGAN at same epoch on same dataset. Author recommend to train model till 3000 epochs which is not feasible at current training speed `(2.80 sec/it)`.
 5) I am open for any suggestion and modification on this repo.
+6) For more complete and end to end Voice cloning or Text to Speech (TTS) toolbox please visit [Deepsync Technologies](https://deepsync.co/).
 
 ## Inference
 
@@ -57,4 +58,5 @@ Using pretrained models, we can reconstruct audio samples. Visit [here](https://
 - [Multi, Full-band melgan implementation](https://github.com/rishikksh20/melgan)
 - [Nvidia's pre-processing](https://github.com/NVIDIA/tacotron2)
 - [WaveRNN](https://github.com/fatchord/WaveRNN)
+- [Deepsync.co](https://deepsync.co/)
 
