@@ -94,7 +94,7 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                 sc_loss, mag_loss = stft_loss(fake_audio[:, :, :audioG.size(2)].squeeze(1), audioG.squeeze(1))
                 loss_g = sc_loss + mag_loss
 
-                adv_loss = torch.tensor(0.0)
+                adv_loss = torch.tensor(0.0).cuda()
 
                 if step > hp.train.discriminator_train_start_steps:
 
