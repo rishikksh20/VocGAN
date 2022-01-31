@@ -88,13 +88,10 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                 fake_audio = model_g(melG)  # torch.Size([16, 1, 12800])
                 fake_audio = fake_audio[:, :, :hp.audio.segment_length]
 
-
-
-
                 sc_loss, mag_loss = stft_loss(fake_audio[:, :, :audioG.size(2)].squeeze(1), audioG.squeeze(1))
                 loss_g = sc_loss + mag_loss
 
-                adv_loss = torch.tensor(0.0)
+                adv_loss = torch.tensor(0.0).cuda() ## To avoid Runtime Error(Expected all tensors to be on the same device, but found at least two devices)
 
                 if step > hp.train.discriminator_train_start_steps:
 

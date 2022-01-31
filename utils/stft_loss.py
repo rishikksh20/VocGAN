@@ -8,6 +8,7 @@
 import torch
 import torch.nn.functional as F
 
+is_torchver_higher18 = float(torch.__version__[:3]) >= 1.8
 
 def stft(x, fft_size, hop_size, win_length, window):
     """Perform STFT and convert to magnitude spectrogram.
@@ -20,7 +21,11 @@ def stft(x, fft_size, hop_size, win_length, window):
     Returns:
         Tensor: Magnitude spectrogram (B, #frames, fft_size // 2 + 1).
     """
-    x_stft = torch.stft(x, fft_size, hop_size, win_length, window)
+    if is_torchver_higher18: ## For future pytorch release (1.8<=), they strongly prefer to use return_complex=True
+        x_stft = torch.stft(x, fft_size, hop_size, win_length, window, return_complex=True)
+        x_stft = torch.view_as_real(x_stft)
+    else:
+        x_stft = torch.stft(x, fft_size, hop_size, win_length, window)
     real = x_stft[..., 0]
     imag = x_stft[..., 1]
 
